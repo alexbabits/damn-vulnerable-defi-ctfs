@@ -1,4 +1,8 @@
-## Unstoppable
+## Hello
+- This repo contains the most detailed writeups and solutions to the DAMN VULNERABLE defi ctf's using FOUNDRY (and maybe hardhat in the future). I will be adding more solutions over time.
+- Find the challenges here: https://www.damnvulnerabledefi.xyz/
+
+## #1 Unstoppable
 - Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
 - Resources: https://twitter.com/bytes032/status/1631235276033990657 & https://gist.github.com/bytes032/68de03834881a41afa1d2d2f7b310d15
 - Topics: Flashloans (ERC-3156) & Vaults (ERC-4626)
