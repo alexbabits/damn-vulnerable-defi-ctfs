@@ -1,9 +1,13 @@
-## Hello
-- This repo contains the most detailed writeups and solutions to the DAMN VULNERABLE defi ctf's using FOUNDRY (and maybe hardhat in the future). I will be adding more solutions over time.
-- Find the challenges here: https://www.damnvulnerabledefi.xyz/
-- Install dependencies (OpenZeppelin, solmate, solady) and then run `forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv`.
-- Using https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry for some of the foundry test templates.
-
+## Introduction, Setup, Tips
+- THE most **detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY** (and maybe hardhat). I will be adding more solutions over time.
+- Challenges: https://www.damnvulnerabledefi.xyz/ 
+- Foundry templates for some challenges: https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry 
+```bash
+git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
+```
+- Install dependencies (OpenZeppelin, solmate, solady).
+- Run tests to complete challenges with: `forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv`.
+- Tip: Some contracts in the root of `src` because are used in multiple challenges.
 
 ## #1 Unstoppable
 - Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
@@ -85,3 +89,53 @@
     - We can call `withdraw` to withdraw 1000 ETH from the pool. Our `receive` function forwards that 1000 ETH straight to the owner (player).
 
 <img src="success4.png" alt="winner">
+
+
+## #5 The Rewarder
+- Preface: OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol for the AccountingToken. I tried using v4.9.3 of OZ which has ERC20snapshot.sol, and also grabbing its imports, but it's all messed up. This writeup will just be explaining and understanding the hack without the solution contracts properly running.
+- Goal: A pool is offering flash loans of DVT tokens. And there's another pool offering rewards in tokens every 5 days for people who deposit their DVT tokens into it. Alice, Bob, Charlie, and David already deposited some DVT tokens and have won their rewards. You have no DVT, but int he upcoming reward round, you must claim most of the rewards for yourself.
+- Resources: https://www.youtube.com/watch?v=zT5uNbGPaJ4, https://github.com/zach030/damnvulnerabledefi-foundry
+- Topics: Flashloans (ERC-3156)
+- Methodology:
+    - Request a `flashLoan` for all the DVT tokens from `flashLoanPool`. This gives us `msg.sender` the tokens (us), and then calls `msg.sender.functionCall(abi.encodeWithSignature("receiveFlashLoan(uint256)", amount));`. So we are actually going to be calling `receiveFlashLoan` for the entire amount of DVT tokens that `flashLoanPool` has. We currently have all the DVT loaned to us.
+    - Inside our attack we have the `receiveFlashLoan` function which is the callback during the flashloan. At this point we already have loaned and have all the DVT tokens. We first need to approve the `RewarderPool` to spend our tokens that we will deposit later. We then `deposit` the DVT tokens into `RewarderPool`, which mints us our virtual accounting tokens and then calls `distributeRewards`.
+    - `distributeRewards` gives us our share of our rewards by minting and sending us some rewardTokens which are DVT, because we have in fact deposited (even though are deposit is the current borrowed DVT from the flash loans).
+    - So now we've gotten some free DVT just from making a flashloan and depositing for the DVT rewards.
+    - Then we immediately `withdraw` back our borrowed DVT and payback the flashloan. Then we transfer our free DVT we stole from our hack contract to our player personal address.
+    - This is a stepwise exploit. You wait right before rewards are finished, then do a flashloan, deposit, get rewards, and then payback the loan. If stepwise calculations are done this is a big issue. It is better to calculate the rewards continuously rather than doing stepwise jumps.
+
+
+## #6 Selfie
+- Preface: OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol.
+- Goal: Pool offering flash loans of DVT tokens. It has a governance mechanism to control it. You start with no DVT tokens in balance. The pool has 1.5 million. Your goal is to take them all.
+- Resources: https://www.youtube.com/watch?v=_2RHyMMLR9A, https://github.com/zach030/damnvulnerabledefi-foundry
+- Topics: Flashloans (ERC-3156), DAO's
+- Methodology:
+    - Anyone can take a snapshot. We `flashLoan` all 1.5M tokens from pool. This is so we can pass the `_hasEnoughVotes` check inside the `queueAction` function. We take a snapshot after we have all the DVT tokens during the flashloan process and successfully pass the check. This allows us to propose and queue an action.
+    - We can now act as the governance contract, call `queueAction`, and pass in `emergencyExit` with us as the receiver, which will give us all the funds. The flash loan must finish first, so `queueAction` is called, then we `approve` the pool to `transferFrom` our borrowed DVT back.
+    - The flash loan finishes. We wait 2 days and then call `executeAction`. This makes the governance contract call `emergencyExit` with us as the reciever. Because the governance contract is the one calling `emergencyExit`, this passes the `onlyGovernance` modifier.
+
+
+## #7 Compromised
+
+
+
+
+
+
+
+## #8 Puppet
+
+## #9 Puppet V2
+
+## #10 Free Rider
+
+## #11 Backdoor
+
+## #12 Climber
+
+## #13 Wallet Mining
+
+## #14 Puppet V3
+
+## #15 ABI Smuggling
