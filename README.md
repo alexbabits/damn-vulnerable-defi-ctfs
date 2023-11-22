@@ -75,20 +75,13 @@
 ## #4 Side Entrance
 - Goal: Pool with 1000 ETH allows for deposits and withdraw of ETH with no fee flash loans. Starting with 1 ETH in balance, pass the challenge by taking all ETH from the pool.
 - Resources: https://github.com/zach030/damnvulnerabledefi-foundry
-- Topics: Flashloans (ERC-3156), ????
+- Topics: Flashloans (ERC-3156)
 - Methodology:
+    - Attackers balance before is 0 ETH. Player's balance is 1 ETH. Player deploys the hack contract, attacker calls `attack` with 1000 ETH. This starts a `flashLoan` for 1000 ETH with no fees. 
+    - Then the pool does `IFlashLoanEtherReceiver(msg.sender).execute{value: amount}();` which calls `execute` on the hackers contract.
+    - Our `execute` function calls `deposit` on the pool which deposits the 1000 borrowed ETH back into the pool. This increases our tracked mapping balance as seen by the pool to now be 1000 ETH deposited, which can be withdrawn later.
+    - Importantly, there is no pull action to get that 1000 ETH loan back at the end of the flash loan, all it does is check `if (address(this).balance < balanceBefore)` to complete the flash loan. This check passes because ( 1000 < 1000 ) is false. The pool's balance before was 1000 ETH, and after the flash loan it's real physical balance is 1000 ETH as well. This check is "supposed" to verify that the pool didn't lose money, which it technically did not at this state. However, the issue is that we manipulated the mapping of our virtual balance to be 1000 ETH during the flash loan by calling `deposit` and giving the pool our borrowed ETH.
+    - Now the pool has it's 1000 ETH again and our hack contract has no ETH. But because we deposited that loaned ETH, the contract's balance mapping thinks we are eligible to claim that 1000 ETH.
+    - We can call `withdraw` to withdraw 1000 ETH from the pool. Our `receive` function forwards that 1000 ETH straight to the owner (player).
 
 <img src="success4.png" alt="winner">
-
-
-
-
-"challenge 4 and cleanup"
-
---> Flash loan 1,000 ETH to ourselves
---> Deposit that 1,000 ETH.
---> Withdraw that 1,000 ETH.
-
-
-
---> No fees. We are going to transfer 1000 ETH to ourself using a flash loan. Then inside that flash loan we are going to withdraw 1000 ETH.

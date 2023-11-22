@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import { SideEntranceLenderPool } from "./SideEntranceLenderPool.sol";
@@ -8,7 +7,7 @@ contract Attacker {
 
     SideEntranceLenderPool pool;
     address owner;
-    constructor(address _pool){
+    constructor(address _pool) {
         pool = SideEntranceLenderPool(_pool);
         owner = msg.sender;
     }

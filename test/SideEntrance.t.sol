@@ -11,16 +11,10 @@ import { Attacker } from "../src/side-entrance/Attacker.sol";
 contract SideEntranceTest is Test{
     uint256 internal constant ETHER_IN_POOL = 1_000e18;
     uint256 internal constant PLAYER_INITIAL_ETH_BALANCE = 1e18;
-    Utilities util = new Utilities();
-    address payable deployer;
-    address payable player;
+    address player = makeAddr("hackooooor");
     SideEntranceLenderPool pool;
 
     function setUp() public {
-        address payable[] memory users = util.createUsers(2);
-        deployer = users[0];
-        player = users[1];
-
         pool = new SideEntranceLenderPool();
         pool.deposit{value: ETHER_IN_POOL}();
         assertEq(address(pool).balance, ETHER_IN_POOL);
@@ -30,9 +24,10 @@ contract SideEntranceTest is Test{
     }
 
     function testExploit() public {
-        /** CODE YOUR SOLUTION HERE */
-        /* */
         vm.startPrank(player);
+        console.log("Initial Balance of pool:", address(pool).balance / 1e18);
+        console.log("Initial Balance of player:", address(player).balance / 1e18);
+
         Attacker attacker = new Attacker(address(pool));
         attacker.attack(ETHER_IN_POOL);
         attacker.withdraw();
@@ -43,6 +38,8 @@ contract SideEntranceTest is Test{
     function validation() public {
         assertEq(address(pool).balance, 0);
         assertGt(address(player).balance, ETHER_IN_POOL);
+        console.log("Final Balance of pool after `withdraw`:", address(pool).balance / 1e18);
+        console.log("Final Balance of player after `withdraw`:", address(player).balance / 1e18);
         console.log(unicode"\n🎉🥳 Congratulations, you beat the level!!! 🥳🎉");
     }
 }
