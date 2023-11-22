@@ -1,4 +1,11 @@
-## Unstoppable
+## Hello
+- This repo contains the most detailed writeups and solutions to the DAMN VULNERABLE defi ctf's using FOUNDRY (and maybe hardhat in the future). I will be adding more solutions over time.
+- Find the challenges here: https://www.damnvulnerabledefi.xyz/
+- Install dependencies (OpenZeppelin, solmate, solady) and then run `forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv`.
+- Using https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry for some of the foundry test templates.
+
+
+## #1 Unstoppable
 - Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
 - Resources: https://twitter.com/bytes032/status/1631235276033990657 & https://gist.github.com/bytes032/68de03834881a41afa1d2d2f7b310d15
 - Topics: Flashloans (ERC-3156) & Vaults (ERC-4626)
@@ -34,6 +41,17 @@
 
     3. Synopsis & Lessons: 
         - Calling `withdraw` for a vault during the `onFlashLoan` fallback messes up the accounting in this scenario. The flashloan gives you the tokens, which decrements `totalAssets`. Then `withdraw` calculates the number of virtual shares to burn based on that decremented `totalAssets`. Because `totalAsset` doesn't equal `totalSupply` at this point in time, the `mulDivUp` calculates a remainder, which causes the formula to add extra 1 to the shares to burn. So it burns an extra share, gives you your withdraw token, and then the vault takes back it's loan. This is why in the final state we see there is 1 less virtual share in the accounting. 
-        - Install dependencies (OpenZeppelin & solmate) and then run `forge test -vv` to see.
 
 <img src="success.png" alt="winner">
+
+
+## #2 Naive Receiver
+- Goal: Drain Naive Receiver's contract balance of 10 ETH in a single transaction. He has a contract setup that can call `onFlashLoan` for the pool. The pool has 1 ether fee per flash loan.
+- Resources: https://www.youtube.com/watch?v=2tFlcH5k-jk, https://github.com/zach030/damnvulnerabledefi-foundry
+- Topics: Flashloans (ERC-3156)
+- Methodology & Lessons:
+    - `FlashLoanReceiver` ignored the first parameter in the `onFlashLoan` which is the `initiator`, which is the `msg.sender` of `flashLoan`.
+    - Because his `onFlashLoan` function is external and missing the variable associated with the `initiator`, we can create a contract that calls `flashLoan` on his behalf, loan 0 tokens, and just `flashLoan` 10 times, which will cost him 10 ETH and successfully drain his contract. 
+    - This can all happen in 1 transaction because upon deployment the `Attacker` contract must finish the loop and package that all into one transaction upon deployment. 
+    - It doesn't even matter what we do in `onFlashLoan`, all we wanted to do is drain his account from the absurd flash loan fees.
+    - Anyone can initiate a flash loan on behalf of this guy (FlashLoanReceiver.sol).
