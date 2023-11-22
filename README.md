@@ -70,3 +70,25 @@
     - The `approve` function thus gets executed, approving our hack contract as the spender to be able to spend all the pools tokens. We can then `transferFrom` all of the pools tokens from the pool to us.
 
 <img src="success3.png" alt="winner">
+
+
+## #4 Side Entrance
+- Goal: Pool with 1000 ETH allows for deposits and withdraw of ETH with no fee flash loans. Starting with 1 ETH in balance, pass the challenge by taking all ETH from the pool.
+- Resources: https://github.com/zach030/damnvulnerabledefi-foundry
+- Topics: Flashloans (ERC-3156), ????
+- Methodology:
+
+<img src="success4.png" alt="winner">
+
+
+
+
+"challenge 4 and cleanup"
+
+--> Flash loan 1,000 ETH to ourselves
+--> Deposit that 1,000 ETH.
+--> Withdraw that 1,000 ETH.
+
+
+
+--> No fees. We are going to transfer 1000 ETH to ourself using a flash loan. Then inside that flash loan we are going to withdraw 1000 ETH.

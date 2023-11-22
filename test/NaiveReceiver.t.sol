@@ -31,10 +31,8 @@ contract NaiveReceiver is Test {
     }
 
     function testExploit() public {
-        // Deploys our Attacker contract which calls `flashLoan` 10 times on behalf of receiver.
         new Attacker(payable(naiveReceiverLenderPool), payable(flashLoanReceiver));
         validation();
-        console.log(unicode"\n🎉🥳 Congratulations, you beat the level!!! 🥳🎉");
     }
 
     function validation() internal {
@@ -42,5 +40,6 @@ contract NaiveReceiver is Test {
         assertEq(address(naiveReceiverLenderPool).balance, ETHER_IN_POOL + ETHER_IN_RECEIVER);
         console.log("Balance of FlashLoanReceiver.sol: ", address(flashLoanReceiver).balance);
         console.log("Balance of the pool: ", address(naiveReceiverLenderPool).balance / 1e18);
+        console.log(unicode"\n🎉🥳 Congratulations, you beat the level!!! 🥳🎉");
     }
 }
