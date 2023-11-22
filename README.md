@@ -55,3 +55,5 @@
     - This can all happen in 1 transaction because upon deployment the `Attacker` contract must finish the loop and package that all into one transaction upon deployment. 
     - It doesn't even matter what we do in `onFlashLoan`, all we wanted to do is drain his account from the absurd flash loan fees.
     - Anyone can initiate a flash loan on behalf of this guy (FlashLoanReceiver.sol).
+
+<img src="success2.png" alt="winner">
