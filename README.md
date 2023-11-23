@@ -92,7 +92,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 
 ## #5 The Rewarder
-- Preface: OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol for the AccountingToken. I tried using v4.9.3 of OZ which has ERC20snapshot.sol, and also grabbing its imports, but it's all messed up. This writeup will just be explaining and understanding the hack without the solution contracts properly running.
+- Preface: **CURRENTLY NOT WORKING** OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol for the AccountingToken. I tried using v4.9.3 of OZ which has ERC20snapshot.sol, and also grabbing its imports, but it's all messed up. This writeup will just be explaining and understanding the hack without the solution contracts properly running.
 - Goal: A pool is offering flash loans of DVT tokens. And there's another pool offering rewards in tokens every 5 days for people who deposit their DVT tokens into it. Alice, Bob, Charlie, and David already deposited some DVT tokens and have won their rewards. You have no DVT, but int he upcoming reward round, you must claim most of the rewards for yourself.
 - Resources: https://www.youtube.com/watch?v=zT5uNbGPaJ4, https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156)
@@ -106,7 +106,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 
 ## #6 Selfie
-- Preface: OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol.
+- Preface: **CURRENTLY NOT WORKING** OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol.
 - Goal: Pool offering flash loans of DVT tokens. It has a governance mechanism to control it. You start with no DVT tokens in balance. The pool has 1.5 million. Your goal is to take them all.
 - Resources: https://www.youtube.com/watch?v=_2RHyMMLR9A, https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156), DAO's
@@ -117,8 +117,39 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 
 ## #7 Compromised
+- Preface/Notes: `_setupRole` is depreicated in OZ, replace any instances with `_grantRole`.
+- Goal: A related on-chain exchange is selling (absurdly overpriced) collectibles called “DVNFT”, now at 999 ETH each. This price is fetched from an on-chain oracle, based on 3 trusted reporters: 0xA732...A105, 0xe924...9D15 and 0x81A5...850c. Starting with 0.1 ETH, obtain all ETH available in the exchange.
 
+```sh
+HTTP/2 200 OK
+content-type: text/html
+content-language: en
+vary: Accept-Encoding
+server: cloudflare
 
+4d 48 68 6a 4e 6a 63 34 5a 57 59 78 59 57 45 30 4e 54 5a 6b 59 54 59 31 59 7a 5a 6d 59 7a 55 34 4e 6a 46 6b 4e 44 51 34 4f 54 4a 6a 5a 47 5a 68 59 7a 42 6a 4e 6d 4d 34 59 7a 49 31 4e 6a 42 69 5a 6a 42 6a 4f 57 5a 69 59 32 52 68 5a 54 4a 6d 4e 44 63 7a 4e 57 45 35
+
+4d 48 67 79 4d 44 67 79 4e 44 4a 6a 4e 44 42 68 59 32 52 6d 59 54 6c 6c 5a 44 67 34 4f 57 55 32 4f 44 56 6a 4d 6a 4d 31 4e 44 64 68 59 32 4a 6c 5a 44 6c 69 5a 57 5a 6a 4e 6a 41 7a 4e 7a 46 6c 4f 54 67 33 4e 57 5a 69 59 32 51 33 4d 7a 59 7a 4e 44 42 69 59 6a 51 34
+```
+
+- Resources: https://www.youtube.com/watch?v=ecYTmC6tUXI, https://github.com/zach030/damnvulnerabledefi-foundry, https://www.rapidtables.com/convert/number/hex-to-ascii.html, https://www.base64decode.org/
+- Topics: Exchanges, Oracles, & data types
+- Methodology:
+    - The hex data in the html request shown in the challenge briefing can be converted to ASCII and then to base64, which reveals the oracles private keys. Convert hex --> ASCII --> base64
+```sh
+MHhjNjc4ZWYxYWE0NTZkYTY1YzZmYzU4NjFkNDQ4OTJjZGZhYzBjNmM4YzI1NjBiZjBjOWZiY2RhZTJmNDczNWE5
+0xc678ef1aa456da65c6fc5861d44892cdfac0c6c8c2560bf0c9fbcdae2f4735a9
+
+MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYzNDBiYjQ4
+0x208242c40acdfa9ed889e685c23547acbed9befc60371e9875fbcd736340bb48
+```
+    
+- Now that we can control the oracles private keys, we can also just derive the public address with `vm.addr(private key)`. We can now update the price with `postPrice`. We can act as an oracle and pass the `TRUSTED_SOURCE_ROLE` check in the `postPrice` function, so we set two of the three NFT's to a very low price of 0.0001 ETH. This will make the median price the very low price, which is what the oracle uses to determine the actual price of the symbol.
+- Then we act as the player, calling `buyOne` on the `Exchange` contract to buy an NFT for 0.0001 ETH.
+- Then we post our NFT for sale for the entire exchangeBalance (999+0.001), and `sellOne` sell it to the exchange. The player now has 999.1 ETH (started with 0.1), the exchange has 0 ETH.
+- Then as the last part of the challenge, we act as the oracle and set those two NFT prices back to 999 ETH.
+
+<img src="success7.png" alt="winner">
 
 
 
