@@ -1,11 +1,12 @@
 ## Introduction, Setup, Tips
-- THE most **detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY** (and maybe hardhat). I will be adding more solutions over time.
+- THE most **detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY**. I will be adding the last few solutions over time.
 - Challenges: https://www.damnvulnerabledefi.xyz/ 
 - Foundry templates for some challenges: https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry 
 ```bash
 git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 ```
 - Install dependencies (OpenZeppelin, solmate, solady).
+- All challenges currently working except #5 and #6 (OpenZeppelin recently removed `ERC20Snapshot.sol`). 
 - Run tests to complete challenges with: `forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv`.
 - Tip: Some contracts in the root of `src` because are used in multiple challenges.
 
@@ -153,7 +154,7 @@ MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYz
 
 
 ## #8 Puppet
-- Preface: **CURRENTLY NOT WORKING** ABI broken (maybe my fault?) so I can't deploy Uniswap V1.
+- Preface: Currently working but had to add `stateMutability: view` to all the functions in `UniswapV1Exchange.json` and `UniswapV1Factory.json`.
 - Goal: Lending pool where users can borrow DVT. First need to deposit 2x the borrow amount in ETH as collateral. The pool has 100k DVT in liquidity. There is a DEX (Uniswap V1) with 10 ETH and 10 DVT in liquidity. Take all the tokens from the pool. You start with 25 ETH and 1000 DVT.
 - Resources: https://www.youtube.com/watch?v=7pf3COTx708, https://github.com/zach030/damnvulnerabledefi-foundry, https://docs.uniswap.org/contracts/v1/reference/exchange, https://book.getfoundry.sh/cheatcodes/sign
 - Topics: DEXs & LPs & oracles
@@ -161,28 +162,17 @@ MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYz
 
 ```sh
 Initial State:
-Player: 1_000 DVT, 25 ETH
+Attacker: 1_000 DVT, 25 ETH
 Lending Pool: 100_000 DVT
 Exchange: 10 DVT, 10 ETH (1 ETH per DVT)
 ```
 
-- We first need to take the funds from the player and put them in our hack contract so this can all happen atomically in one transaction during the constructor deployment of the hack contract. We do this with `prepareAttack` which passes in the players `v,r,s, amount of DVT, UniswapV1Exchange address`. The `prepareAttack` calls `permit` which enables our hack contract to spend the DVT tokens on behalf of player in a single tx. Then we transfer the 1_000 DVT tokens with `transferFrom` to the hack contract. In our test we also transfer the value which is the players 25 ETH as well. Finally approve the uniswap v1 exchange contract to be able to spend that entire amount of DVT for our future "token to ETH" swap on Uniswap. 
-
-```sh
-State after calling prepareAttack:
-Player: 0 DVT, 0 ETH
-Hack Contract: 1_000 DVT, 25 ETH
-Lending Pool: 100_000 DVT
-Exchange: 10 DVT, 10 ETH (1 DVT per ETH)
-```
-
-- We then ABI call `tokenToEthSwapInput` which sells 1_000 DVT for a minimum of 1 ETH. This puts 1_000 DVT into the uniswap exchange pool, and takes out ETH. But it doesn't just take out 1 ETH, we receive nearly all of the 10 ETH that was in the exchange because we put in so many DVT tokens compared to the initial state of the uniswap pool balances. Using the formula `x * y = k` we can calculate how much ETH we will receive, where `x` is DVT, `y` is ETH, and `k` is the constant.
+- We ABI call `tokenToEthSwapInput` which sells 1_000 DVT for a minimum of 1 ETH. This puts 1_000 DVT into the uniswap exchange pool, and takes out ETH. But it doesn't just take out 1 ETH, we receive nearly all of the 10 ETH that was in the exchange because we put in so many DVT tokens compared to the initial state of the uniswap pool balances. Using the formula `x * y = k` we can calculate how much ETH we will receive, where `x` is DVT, `y` is ETH, and `k` is the constant.
 - `k = 10 * 10 = 100`. `k` must always remain 100. Therefore, after the swap the equation becomes `(10 + 1000) * y = 100`. So `y = 0.099 ETH`. This means the uniswap pools state after the swap will have 1010 DVT tokens and 0.099 ETH, giving us `10 - 0.099 = 9.901 ETH`.
 
 ```sh
 State after 1000 DVT swap to ETH:
-Player: 0 DVT, 0 ETH
-Hack Contract: 0 DVT, 34.901 ETH
+Attacker: 0 DVT, 34.901 ETH
 Lending Pool: 100_000 DVT
 Exchange: 1_010 DVT, 0.099 ETH (10_202 DVT per ETH, 0.000098 ETH per DVT)
 ```
@@ -192,32 +182,12 @@ Exchange: 1_010 DVT, 0.099 ETH (10_202 DVT per ETH, 0.000098 ETH per DVT)
 
 ```sh
 State after borrowing DVT from lending pool:
-Player: 0 DVT, 0 ETH
-Hack Contract: 100_000 DVT, 15.301 ETH
+Attacker: 100_000 DVT, 15.301 ETH
 Lending Pool: 0 DVT, 19.6 ETH
 Exchange: 1_010 DVT, 0.099 ETH
 ```
 
-- Optional Step: We can return the Uniswap Exchange balance pool to 10 DVT and 10 ETH to try and obfuscate what happened. This is futile because the activity is all on chain and just costs us ETH to attempt to cover up what happened. 
-- Using `ethToTokenSwapOutput` and setting a maximum value of 10 ETH to send, and requesting to buy 1000 DVT. We won't need to send the full 10 ETH  because of `x * y = k` where `k = 100` still. The equation now becomes `(1010 - 1000) * (0.099 + y) = 100`. So `y = 9.901`, so we will be sending 9.901 ETH for 1000 DVT. This resets the pool to 10 DVT and 10 ETH. Since the prices are back to normal after our attempted obfusaction, they just keep our 19.6 ETH.
-
-```sh
-State after attempted obfuscation of hack:
-Player: 0 DVT, 0 ETH
-Hack Contract: 101_000 DVT, 5.4 ETH
-Lending Pool: 0 DVT, 19.6 ETH
-Exchange: 10 DVT, 10 ETH
-```
-
-- Lastly, we transfer the ETH and DVT from our hack contract back to the player.
-
-```sh
-State after hack contract finishes and sends player funds:
-Player: 101_000 DVT, 5.4 ETH
-Hack Contract: 0 DVT, 0 ETH
-Lending Pool: 0 DVT, 19.6 ETH
-Exchange: 10 DVT, 10 ETH
-```
+<img src="success8.png" alt="winner">
 
 
 ## #9 Puppet V2

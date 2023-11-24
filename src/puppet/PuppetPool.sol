@@ -1,6 +1,5 @@
-/*
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.23;
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
@@ -59,4 +58,3 @@ contract PuppetPool is ReentrancyGuard {
         return uniswapPair.balance * (10 ** 18) / token.balanceOf(uniswapPair);
     }
 }
-*/
