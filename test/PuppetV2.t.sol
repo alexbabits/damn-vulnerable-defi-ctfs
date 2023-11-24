@@ -36,18 +36,12 @@ contract PuppetV2 is Test {
     function setUp() public {
 
         attacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("attacker"))))));
-        vm.label(attacker, "Attacker");
         vm.deal(attacker, ATTACKER_INITIAL_ETH_BALANCE);
-
         deployer = payable(address(uint160(uint256(keccak256(abi.encodePacked("deployer"))))));
-        vm.label(deployer, "deployer");
 
         // Deploy token to be traded in Uniswap
         dvt = new DamnValuableToken();
-        vm.label(address(dvt), "DVT");
-
         weth = new WETH9();
-        vm.label(address(weth), "WETH");
 
         // Deploy Uniswap Factory and Router
         uniswapV2Factory =

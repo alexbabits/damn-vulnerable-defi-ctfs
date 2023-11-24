@@ -47,7 +47,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
     3. Synopsis & Lessons: 
         - Calling `withdraw` for a vault during the `onFlashLoan` fallback messes up the accounting in this scenario. The flashloan gives you the tokens, which decrements `totalAssets`. Then `withdraw` calculates the number of virtual shares to burn based on that decremented `totalAssets`. Because `totalAsset` doesn't equal `totalSupply` at this point in time, the `mulDivUp` calculates a remainder, which causes the formula to add extra 1 to the shares to burn. So it burns an extra share, gives you your withdraw token, and then the vault takes back it's loan. This is why in the final state we see there is 1 less virtual share in the accounting. 
 
-<img src="success.png" alt="winner">
+<img src="readme-pictures/success.png" alt="winner">
 
 
 ## #2 Naive Receiver
@@ -61,7 +61,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
     - It doesn't even matter what we do in `onFlashLoan`, all we wanted to do is drain his account from the absurd flash loan fees.
     - Anyone can initiate a flash loan on behalf of this guy (FlashLoanReceiver.sol).
 
-<img src="success2.png" alt="winner">
+<img src="readme-pictures/success2.png" alt="winner">
 
 
 ## #3 Truster
@@ -74,7 +74,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
     - The `flashLoan` in the pool then calls `target.functionCall(data);` where the target is the token address of the pool tokens and the function call data is the encoded approve function for ERC20 tokens. `functionCall` returns `functionCallWithValue(target, data, 0);`, and the `functionCallWithValue` is what actually makes the call with our data: `(bool success, bytes memory returndata) = target.call{value: value}(data);`. - The `target` is the token, and the function makes a low level call with our encoded `approve` function bytes data where we specified our address as the spender and the allowance as the entire pools balance. 
     - The `approve` function thus gets executed, approving our hack contract as the spender to be able to spend all the pools tokens. We can then `transferFrom` all of the pools tokens from the pool to us.
 
-<img src="success3.png" alt="winner">
+<img src="readme-pictures/success3.png" alt="winner">
 
 
 ## #4 Side Entrance
@@ -89,7 +89,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
     - Now the pool has it's 1000 ETH again and our hack contract has no ETH. But because we deposited that loaned ETH, the contract's balance mapping thinks we are eligible to claim that 1000 ETH.
     - We can call `withdraw` to withdraw 1000 ETH from the pool. Our `receive` function forwards that 1000 ETH straight to the owner (player).
 
-<img src="success4.png" alt="winner">
+<img src="readme-pictures/success4.png" alt="winner">
 
 
 ## #5 The Rewarder
@@ -150,7 +150,7 @@ MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYz
 - Then we post our NFT for sale for the entire exchangeBalance (999+0.001), and `sellOne` sell it to the exchange. The player now has 999.1 ETH (started with 0.1), the exchange has 0 ETH.
 - Then as the last part of the challenge, we act as the oracle and set those two NFT prices back to 999 ETH.
 
-<img src="success7.png" alt="winner">
+<img src="readme-pictures/success7.png" alt="winner">
 
 
 ## #8 Puppet
@@ -187,7 +187,7 @@ Lending Pool: 0 DVT, 19.6 ETH
 Exchange: 1_010 DVT, 0.099 ETH
 ```
 
-<img src="success8.png" alt="winner">
+<img src="readme-pictures/success8.png" alt="winner">
 
 
 ## #9 Puppet V2
@@ -231,10 +231,70 @@ Attacker: 1_010_000 DVT, 0 ETH, 0.2 WETH
 Lending Pool: 0 DVT, 29.7 WETH
 ```
 
-<img src="success9.png" alt="winner">
+<img src="readme-pictures/success9.png" alt="winner">
 
 
 ## #10 Free Rider
+
+Goal: 6 DVT NFT's have been minted and are for sale in a marketplace for 15 ETH each. Goal is to take all the NFT's, you get rewarded 45 ETH, but you start with out 0.5 ETH. The Uniswap v2 pool has 9_000 WETH and 15_000 DVT.
+
+- Topics: Flash swaps, NFT, Uniswap V2
+- Resources: https://github.com/ret2basic/damn-vulnerable-defi-foundry, https://docs.uniswap.org/contracts/v2/reference/smart-contracts/pair, https://docs.uniswap.org/contracts/v2/concepts/core-concepts/flash-swaps, https://docs.uniswap.org/contracts/v2/guides/smart-contract-integration/using-flash-swaps
+- Methodology:
+
+- Used `1e15` only for console logs to show decimals (otherwise rounding issues with 1e18 obfuscates the real value). (Eg: 75000 = 75 ETH)
+
+```sh
+State initially:
+attacker: 0.5 ETH
+attackerContract: 0
+nft marketplace: 6 NFTs at 15 ETH each
+freeRiderBuyer: 45 ETH
+Uniswap pool: 9_000 WETH, 15_000 DVT
+```
+
+- We call `flashswap` from our attack contract. What is a flash swap? "Uniswap flash swaps allow you to withdraw up to the full reserves of any ERC20 token on Uniswap and execute arbitrary logic at no upfront cost, provided that by the end of the transaction you either pay for the withdrawn ERC20 tokens with the corresponding pair tokens or return the withdrawn ERC20 tokens along with a small fee."
+- `flashswap` calls `swap` on `UniswapV2Pair` for DVT/WETH. We pass in `amount0Out` as 0 (DVT), `amount1Out` as 15 (WETH), our address, and then some data `bytes("1337)`. This means we are requesting a flash swap for 15 WETH. We successfully get the 15 WETH. 
+- Importantly, if `data.length > 0` uniswap assumes the payment has NOT been received, so uniswap pair contract transfers us the 15 WETH and then calls our callback function `uniswapV2Call` in our contract. This is similiar to the `onFlashLoan` callback principle for flash loans. By the end of the `uniswapV2Call` callback, the WETH that was flash swapped for nothing must be repaid.
+
+```sh
+State after flash swapping 15 WETH and then swapping for 15 ETH:
+attacker: 0.5 ETH
+attackerContract: 15 ETH, 0 NFTs
+nft marketplace: 6 NFTs, 0 ETH
+freeRiderBuyer: 45 ETH
+Uniswap pool: 8_985 WETH, 15_000 DVT
+```
+
+- Next in our callback we prepare the token id array and then call `buyMany` on the `freeRiderNFTMarketplace` contract passing in 15 ether and all the token ids. This gives the marketplace our 15 ETH, and then calls `_buyOne` 6 times. 
+- The `_buyOne` function has `two` vulnerabilities. 
+- `Firstly`, it does not deduct `priceToPay` from `msg.value`! This means throughout the 6 calls to it, `msg.value` will stay at 15, meaning we only had to send the 15 ETH once in order to pass all the checks on this function. 
+- `Secondly`, the `safeTransferFrom` and the `sendValue` function are in the wrong order! It should send the original owner (marketplace) the 15 ETH of value, and then give the attack contract the NFT. But because it first transfers the NFT to our attack contract, WE ARE NOW THE OWNER. And so when it sends the 15 ETH payment to the owner, instead of paying the actual owner, it pays us because we are the owner! This happens 6 times, giving us all 6 NFT's, and giving us 90 ETH in the process. While the marketplace only ends up with our 1 payment of 15 ETH.
+
+```sh
+State after buyOne fiasco:
+attacker: 0.5 ETH
+attackerContract: 90 ETH, 6 NFTs
+nft marketplace: 0 NFTs, 15 ETH
+freeRiderBuyer: 45 ETH
+Uniswap pool: 8_985 WETH, 15_000 DVT
+```
+
+- Now we can just send all 6 NFTs to `freeRiderBuyer` who will give `attacker` contract (NOT attackerContract) the 45 ETH bounty.
+- We can pay back the flash swap (exchange 15.1 ETH from attackerContract to 15.1 WETH and then payback flashloan to conclude the flashloan).
+- Optional: In the test file, you can transfer the NFTs from `freeRiderBuyer` to `buyer` if you want to complete the story.
+
+```sh
+State after giving 6 NFTs to freeRiderBuyer & paying back flash swap:
+attacker: 45.5 ETH
+attackerContract: 74.9 ETH, 0 NFTs
+nft marketplace: 0 NFTs at 15 ETH each
+freeRiderBuyer: 0 ETH, 6 NFTs
+Uniswap pool: 9_000.1 WETH, 15_000 DVT
+```
+
+<img src="readme-pictures/success10.png" alt="winner">
+
 
 ## #11 Backdoor
 
