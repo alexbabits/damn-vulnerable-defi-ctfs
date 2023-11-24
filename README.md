@@ -156,7 +156,7 @@ MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYz
 - Preface: **CURRENTLY NOT WORKING** ABI broken (maybe my fault?) so I can't deploy Uniswap V1.
 - Goal: Lending pool where users can borrow DVT. First need to deposit 2x the borrow amount in ETH as collateral. The pool has 100k DVT in liquidity. There is a DEX (Uniswap V1) with 10 ETH and 10 DVT in liquidity. Take all the tokens from the pool. You start with 25 ETH and 1000 DVT.
 - Resources: https://www.youtube.com/watch?v=7pf3COTx708, https://github.com/zach030/damnvulnerabledefi-foundry, https://docs.uniswap.org/contracts/v1/reference/exchange, https://book.getfoundry.sh/cheatcodes/sign
-- Topics: DEXs & LPs
+- Topics: DEXs & LPs & oracles
 - Methodology:
 
 ```sh
@@ -221,6 +221,48 @@ Exchange: 10 DVT, 10 ETH
 
 
 ## #9 Puppet V2
+- Preface: Currently working! But can be fragile. You have to build Uniswap V2 carefully. I had a `duplicate bytecode` error, so I removed the bytecode from the .json file and it worked. This was the repo I mostly used: https://github.com/ret2basic/damn-vulnerable-defi-foundry from https://www.ctfwriteup.com/web3-security-research/damn-vulnerable-defi/puppet-v2
+
+- Goal: Uniswap v2 exchange is the price oracle for a lending pool. You start with 20 ETH and 10000 DVT tokens in balance. The pool has a 1,000,000 DVT tokens in balance. Drain the pool.
+
+- Topics: DEXs & LPs & oracles
+
+- Resources: https://github.com/Uniswap/v2-periphery, https://github.com/Uniswap/v2-core, https://docs.uniswap.org/contracts/v2/overview, https://www.youtube.com/watch?v=F4kqItXHDb0
+
+- Methodology:
+
+```sh
+State initially:
+Attacker: 10_000 DVT, 20 ETH, 0 WETH
+Lending Pool: 1_000_000 DVT, 0 ETH, 0 WETH
+Exchange: 100 DVT, 10 ETH
+```
+
+- The first thing we have to do is approve the router to spend our 10_000 DVT tokens, because we are looking to sell them all for the ETH in the exchange to manipulate the oracle price. Then we call `swapExactTokensForETH` on the router and request to swap all our 10_000 DVT tokens for a minimum of 1 ETH, from DVT to ETH, for our attacker. However, we know we'll get more than 1 ETH. Let's calculate. 
+- `x * y = k` thus `100 DVT * 10 ETH = 1_000 = k`. Recall `k` must remain constant during the swap. 
+- `(100 + 10_000) DVT * (10 - y) ETH = 1_000`. Therefore `y = 9.999` which is the amount of ETH we will receive. This isn't exact as it doesn't account for gas, so let `y = 9.9`.
+- The attacker then calls `deposit` function on `weth` that just exchanges all his 20+9.9 ETH for WETH.
+
+```sh
+State after attacker swaps all DVT for ETH, and then does deposit to swap ETH to WETH
+Attacker: 10_000 DVT, 0 ETH, 29.9 WETH
+Lending Pool: 1_000_000 DVT, 0 WETH
+Exchange: 10_100 DVT, 0.1 ETH ( 101_000 DVT per ETH, 0.0000099 ETH per DVT)
+```
+
+- Because DVT is so cheap now, the oracles quote price will reflect that. So we approve the lending pool for all our WETH, and then we want to calculate how much WETH collateral is required to take the 1_000_000 DVT from the lending pool with `calculateDepositOfWETHRequired`. This calculation goes through `_getOracleQuote` and `quote` functions, which in our case boils down to: 
+- `WETH collat req = ((lending pools DVT * uniswap reserve WETH) / uniswap reserve DVT) * 3`. Therefore, 
+- `WETH collat req = ((1_000_000 * 0.1) / 10_100 ) * 3` = 29.7 WETH collateral required.
+- We then call `borrow` for the pool amount which passes successfully because we have enough collateral, yielding us 1_000_000 DVT for 29.7 WETH.
+
+```sh
+State after attacker successfully borrows DVT
+Attacker: 1_010_000 DVT, 0 ETH, 0.2 WETH
+Lending Pool: 0 DVT, 29.7 WETH
+```
+
+<img src="success9.png" alt="winner">
+
 
 ## #10 Free Rider
 
