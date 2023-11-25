@@ -6,13 +6,14 @@
 git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 ```
 
-- Dependencies (OpenZeppelin, Solmate, Solady, safe-contracts (gnosis)):
+- Dependencies (OpenZeppelin, Solmate, Solady, safe-contracts (gnosis), OpenZeppelin upgradeable contracts):
 
 ```bash
 forge install OpenZeppelin/openzeppelin-contracts
 forge install transmissions11/solmate
 forge install Vectorized/solady
 forge install safe-global/safe-contracts
+forge install OpenZeppelin/openzeppelin-contracts-upgradeable
 ```
 
 - All challenges are currently working except #5 and #6 (OpenZeppelin recently removed `ERC20Snapshot.sol` on Oct 5th, 2023). I may be able to fix if I somehow get an earlier version of OZ.
@@ -338,24 +339,50 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 <img src="readme-pictures/success11.png" alt="winner">
 
 
-
-
-
-
 ## #12 Climber
 
+- Preface/Notes: 
+    - `_setupRole` is depreicated in OZ, replaced instances with `_grantRole`. 
+    - For `__Ownable_init(admin);` in `ClimberVault` contract, I had to pass in `admin` argument.
+
+- Description/Goal: A secure vault contract has 10 million DVT tokens. The vault is upgradeable, following the UUPS pattern. The owner of the vault, currently a timelock contract, can withdraw a very limited amount of tokens every 15 days. On the vault there’s an additional role with powers to sweep all tokens in case of an emergency. On the timelock, only an account with a “Proposer” role can schedule actions that can be executed 1 hour later. To pass this challenge, take all tokens from the vault.
+
+- Topics: UUPS, time locking
+
+- Resources: https://www.fatihdev.com/post/damn-vulnerable-defi-solutions-12-climber
+
+- Methodology:
+    - The `exploit` function in `ClimberAttack` calls the timelock's `execute` function after carefully preparing malicious data for it. This triggers the execution of the calldata from the `dataElements` to their corresponding `targets` by calling `functionCallWithValue` which is ultimately making a low level `call`. Importantly, the `targets`, `values`, and `dataElements` array must all be the same length because each `target` address expects an associated `value` and `data` from the low level `call`. 
+    - Note: All of these packaged actions are using `timelock` as the `msg.sender` because we do `timelock.execute` so we have access to the `ClimberTimelock` contract functions.
+    - We first set the delay of the timelock to 0 by ABI packaging `timelock.updateDelay(0)`. This allows immediate execution of scheduled actions by passing the `ReadyForExecution` check in the `excecute` function after this piece has been iterated through and executed.
+    - We then grant the `PROPOSER` role to our hack contract by ABI packaging `timelock.grantRole(PROPOSER_ROLE, address(this))`. This enables us to call `schedule` to schedule actions.
+    - We then upgrade the vault implementation to our malicious `ClimberVaultV2` with `upgradeToAndCall` function. Notice we also get to pass in data here after we upgrade a vault.
+    - So then we call the new `ClimberVaultV2` malicious `sweep` function to transfer all tokens to the attacker's address.
+    - We then have to call `scheduleOperation()` which calls `timelock.schedule` for our data in our contract to actually schedule the above actions. This will schedule the actions and classify them as `ReadyForExecution` because of the 0 delay, therefore `execute` will successfully finish. We just need `execute` to not revert, because if it finishes then all of our malicious steps will happen in one atomic transaction successfully!
+    - Lastly, we actually call `execute` with all this prepared data, which iterates through the `targets` array and makes the associated low level calls with the associated `data` we prepared. It successfully passes all the checks, executing our malicious data to give us all the vault funds.
+    - **Fixing the Vulnerability**: Have an access control modifier for the `execute` function, and/or sanitize the incoming `dataElements`.
+
+
+<img src="readme-pictures/success12.png" alt="winner">
+
+
+
 ## #13 Wallet Mining
+
 
 ## #14 Puppet V3
 
 ## #15 ABI Smuggling
 
 
-### Exhaustive Resources List
+### Resources I used to help me adapt all challenges to foundry
 - Tincho's challenges: https://www.damnvulnerabledefi.xyz/
-- Huge shoutout to: https://github.com/zach030/damnvulnerabledefi-foundry for some good solutions and test templates in foundry
-- Huge shoutout to: https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry for good foundry test templates
+- Good solutions and test templates in foundry: https://github.com/zach030/damnvulnerabledefi-foundry
+- Good foundry test templates: https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry
 - Bytes32 #1 Unstoppable: https://twitter.com/bytes032/status/1631235276033990657
 - Bytes32 #1 gist: https://gist.github.com/bytes032/68de03834881a41afa1d2d2f7b310d15
-- Huge shoutout to: https://www.youtube.com/@JohnnyTime for many awesome walkthroughs and solutions
-- Huge shoutout to Ethan Cemer #11 backdoor: https://www.youtube.com/watch?v=j48sEXLzt0E
+- JohnnyTime for some solution explanations: https://www.youtube.com/@JohnnyTime
+- Ethan Cemer #11 backdoor: https://www.youtube.com/watch?v=j48sEXLzt0E
+- Fatih #12 climber: https://www.fatihdev.com/post/damn-vulnerable-defi-solutions-12-climber
+- setup and solutions: https://www.ctfwriteup.com/web3-security-research/damn-vulnerable-defi
+- github for ctfwriteup: https://github.com/ret2basic/damn-vulnerable-defi-foundry
