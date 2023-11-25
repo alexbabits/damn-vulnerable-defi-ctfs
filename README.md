@@ -16,12 +16,14 @@ forge install safe-global/safe-contracts
 forge install OpenZeppelin/openzeppelin-contracts-upgradeable
 ```
 
-- All challenges are currently working except #5 and #6 (OpenZeppelin recently removed `ERC20Snapshot.sol` on Oct 5th, 2023). I may be able to fix if I somehow get an earlier version of OZ.
 - Run the tests to complete challenges: 
 
 ```bash
 forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
 ```
+
+- Challenges #5 and #6 not working because OpenZeppelin recently removed `ERC20Snapshot.sol` on Oct 5th, 2023. I may be able to fix it if I somehow get an earlier version of OZ.
+- Challenges #13, #14, #15 do not have a pre-made foundry test template, so if I solve these I will need to create and adapt the hardhat template from scatch.
 
 ## #1 Unstoppable
 - Description/Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
@@ -366,9 +368,7 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 <img src="readme-pictures/success12.png" alt="winner">
 
 
-
 ## #13 Wallet Mining
-
 
 ## #14 Puppet V3
 
