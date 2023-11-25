@@ -1,17 +1,29 @@
-## Introduction, Setup, Tips
-- THE most **detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY**. I will be adding the last few solutions over time.
+## Overview & Setup
+- **Detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY**. I will try to add the last few solutions over time.
 - Challenges: https://www.damnvulnerabledefi.xyz/ 
-- Foundry templates for some challenges: https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry 
+
 ```bash
 git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 ```
-- Install dependencies (OpenZeppelin, solmate, solady).
-- All challenges currently working except #5 and #6 (OpenZeppelin recently removed `ERC20Snapshot.sol`). 
-- Run tests to complete challenges with: `forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv`.
-- Tip: Some contracts in the root of `src` because are used in multiple challenges.
+
+- Dependencies (OpenZeppelin, Solmate, Solady, safe-contracts (gnosis)):
+
+```bash
+forge install OpenZeppelin/openzeppelin-contracts
+forge install transmissions11/solmate
+forge install Vectorized/solady
+forge install safe-global/safe-contracts
+```
+
+- All challenges are currently working except #5 and #6 (OpenZeppelin recently removed `ERC20Snapshot.sol` on Oct 5th, 2023). I may be able to fix if I somehow get an earlier version of OZ.
+- Run the tests to complete challenges: 
+
+```bash
+forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
+```
 
 ## #1 Unstoppable
-- Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
+- Description/Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
 - Resources: https://twitter.com/bytes032/status/1631235276033990657 & https://gist.github.com/bytes032/68de03834881a41afa1d2d2f7b310d15
 - Topics: Flashloans (ERC-3156) & Vaults (ERC-4626)
 - Methodology:
@@ -51,7 +63,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 
 ## #2 Naive Receiver
-- Goal: Drain Naive Receiver's contract balance of 10 ETH in a single transaction. He has a contract setup that can call `onFlashLoan` for the pool. The pool has 1 ether fee per flash loan.
+- Description/Goal: Drain Naive Receiver's contract balance of 10 ETH in a single transaction. He has a contract setup that can call `onFlashLoan` for the pool. The pool has 1 ether fee per flash loan.
 - Resources: https://www.youtube.com/watch?v=2tFlcH5k-jk, https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156)
 - Methodology:
@@ -65,7 +77,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 
 ## #3 Truster
-- Goal: Take all the tokens out of the pool, in a single transaction if possible. A pool offering flash loans of DVT tokens for free. You have nothing.
+- Description/Goal: Take all the tokens out of the pool, in a single transaction if possible. A pool offering flash loans of DVT tokens for free. You have nothing.
 - Resources: https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156), tokens (ERC-20)
 - Methodology:
@@ -78,7 +90,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 
 ## #4 Side Entrance
-- Goal: Pool with 1000 ETH allows for deposits and withdraw of ETH with no fee flash loans. Starting with 1 ETH in balance, pass the challenge by taking all ETH from the pool.
+- Description/Goal: Pool with 1000 ETH allows for deposits and withdraw of ETH with no fee flash loans. Starting with 1 ETH in balance, pass the challenge by taking all ETH from the pool.
 - Resources: https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156)
 - Methodology:
@@ -94,7 +106,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 ## #5 The Rewarder
 - Preface: **CURRENTLY NOT WORKING** OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol for the AccountingToken. I tried using v4.9.3 of OZ which has ERC20snapshot.sol, and also grabbing its imports, but it's all messed up. This writeup will just be explaining and understanding the hack without the solution contracts properly running.
-- Goal: A pool is offering flash loans of DVT tokens. And there's another pool offering rewards in tokens every 5 days for people who deposit their DVT tokens into it. Alice, Bob, Charlie, and David already deposited some DVT tokens and have won their rewards. You have no DVT, but int he upcoming reward round, you must claim most of the rewards for yourself.
+- Description/Goal: A pool is offering flash loans of DVT tokens. And there's another pool offering rewards in tokens every 5 days for people who deposit their DVT tokens into it. Alice, Bob, Charlie, and David already deposited some DVT tokens and have won their rewards. You have no DVT, but int he upcoming reward round, you must claim most of the rewards for yourself.
 - Resources: https://www.youtube.com/watch?v=zT5uNbGPaJ4, https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156)
 - Methodology:
@@ -108,7 +120,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 ## #6 Selfie
 - Preface: **CURRENTLY NOT WORKING** OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol.
-- Goal: Pool offering flash loans of DVT tokens. It has a governance mechanism to control it. You start with no DVT tokens in balance. The pool has 1.5 million. Your goal is to take them all.
+- Description/Goal: Pool offering flash loans of DVT tokens. It has a governance mechanism to control it. You start with no DVT tokens in balance. The pool has 1.5 million. Your goal is to take them all.
 - Resources: https://www.youtube.com/watch?v=_2RHyMMLR9A, https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156), DAO's
 - Methodology:
@@ -119,7 +131,7 @@ git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
 
 ## #7 Compromised
 - Preface/Notes: `_setupRole` is depreicated in OZ, replace any instances with `_grantRole`.
-- Goal: A related on-chain exchange is selling (absurdly overpriced) collectibles called “DVNFT”, now at 999 ETH each. This price is fetched from an on-chain oracle, based on 3 trusted reporters: 0xA732...A105, 0xe924...9D15 and 0x81A5...850c. Starting with 0.1 ETH, obtain all ETH available in the exchange.
+- Description/Goal: A related on-chain exchange is selling (absurdly overpriced) collectibles called “DVNFT”, now at 999 ETH each. This price is fetched from an on-chain oracle, based on 3 trusted reporters: 0xA732...A105, 0xe924...9D15 and 0x81A5...850c. Starting with 0.1 ETH, obtain all ETH available in the exchange.
 
 ```sh
 HTTP/2 200 OK
@@ -155,7 +167,7 @@ MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYz
 
 ## #8 Puppet
 - Preface: Currently working but had to add `stateMutability: view` to all the functions in `UniswapV1Exchange.json` and `UniswapV1Factory.json`.
-- Goal: Lending pool where users can borrow DVT. First need to deposit 2x the borrow amount in ETH as collateral. The pool has 100k DVT in liquidity. There is a DEX (Uniswap V1) with 10 ETH and 10 DVT in liquidity. Take all the tokens from the pool. You start with 25 ETH and 1000 DVT.
+- Description/Goal: Lending pool where users can borrow DVT. First need to deposit 2x the borrow amount in ETH as collateral. The pool has 100k DVT in liquidity. There is a DEX (Uniswap V1) with 10 ETH and 10 DVT in liquidity. Take all the tokens from the pool. You start with 25 ETH and 1000 DVT.
 - Resources: https://www.youtube.com/watch?v=7pf3COTx708, https://github.com/zach030/damnvulnerabledefi-foundry, https://docs.uniswap.org/contracts/v1/reference/exchange, https://book.getfoundry.sh/cheatcodes/sign
 - Topics: DEXs & LPs & oracles
 - Methodology:
@@ -193,7 +205,7 @@ Exchange: 1_010 DVT, 0.099 ETH
 ## #9 Puppet V2
 - Preface: Currently working! But can be fragile. You have to build Uniswap V2 carefully. I had a `duplicate bytecode` error, so I removed the bytecode from the .json file and it worked. This was the repo I mostly used: https://github.com/ret2basic/damn-vulnerable-defi-foundry from https://www.ctfwriteup.com/web3-security-research/damn-vulnerable-defi/puppet-v2
 
-- Goal: Uniswap v2 exchange is the price oracle for a lending pool. You start with 20 ETH and 10000 DVT tokens in balance. The pool has a 1,000,000 DVT tokens in balance. Drain the pool.
+- Description/Goal: Uniswap v2 exchange is the price oracle for a lending pool. You start with 20 ETH and 10000 DVT tokens in balance. The pool has a 1,000,000 DVT tokens in balance. Drain the pool.
 
 - Topics: DEXs & LPs & oracles
 
@@ -235,9 +247,7 @@ Lending Pool: 0 DVT, 29.7 WETH
 
 
 ## #10 Free Rider
-
-Goal: 6 DVT NFT's have been minted and are for sale in a marketplace for 15 ETH each. Goal is to take all the NFT's, you get rewarded 45 ETH, but you start with out 0.5 ETH. The Uniswap v2 pool has 9_000 WETH and 15_000 DVT.
-
+- Description/Goal: 6 DVT NFT's have been minted and are for sale in a marketplace for 15 ETH each. Goal is to take all the NFT's, you get rewarded 45 ETH, but you start with out 0.5 ETH. The Uniswap v2 pool has 9_000 WETH and 15_000 DVT.
 - Topics: Flash swaps, NFT, Uniswap V2
 - Resources: https://github.com/ret2basic/damn-vulnerable-defi-foundry, https://docs.uniswap.org/contracts/v2/reference/smart-contracts/pair, https://docs.uniswap.org/contracts/v2/concepts/core-concepts/flash-swaps, https://docs.uniswap.org/contracts/v2/guides/smart-contract-integration/using-flash-swaps
 - Methodology:
@@ -297,6 +307,40 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 
 
 ## #11 Backdoor
+- Preface: A mess to setup properly with imports and dependencies (safe-contracts repo changed their @!#&ing file names 3 weeks ago to remove the word GNOSIS, wtf?). 
+- Description/Goal: There is a registry of gnosis safe wallets. If someone deploys and registers a wallet, they get 10 DVT from the registry. It also uses gnosis safe proxy factory. 4 people, Alice, Bob, Charlie, David are currently registered into the system as beneficiaries. Therefore, the registry has 40 DVT tokens in the balance ready to be distributed. We have to take the funds from the wallet registry in a single transaction.
+- Topics: Gnosis safe wallets
+- Resources: https://www.youtube.com/watch?v=j48sEXLzt0E, https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry 
+- Methodology:
+
+    1. **Declaring our intentions**
+        - Our `RegistryAttack` contract calls `createProxyWithCallback`. This function makes two function calls, `createProxyWithNonce` and `proxyCreated`. The latter we do not need to worry about until after the proxy is created. 
+        - So firstly, `createProxyWithNonce` calls `deployProxy`, which makes a low level `call`, which begins the execution of our `initializer` data. Importantly, if initializer data is provided, which it is, it executes the initializer in the context of the newly created proxy. Also importantly, `deployProxy` is literally freshly printing a new `proxy` address with the `create2` opcode, and then doing a low level `call` referencing the `proxy` and the `initializer` data, which makes the `initializer` data run in the context of the fresh off the press `proxy`.
+        - So far, all we are doing is telling the `deployProxy` that we want to create a proxy with our `initializer` data. This is done with the gnosis Safe's `setup` function, which should be the first argument for our initializer.
+        - Inside our `initializer` data, we specify `Safe.setup.selector` and then the arguments we want to pass into the Safe's setup function. Behind the scenes, `setup` calls `setupOwners` (which is irrelevant to the hack and just sets up the owner). But `setup` then also calls `setupModules`, which calls `execute`. And the `execute` function makes a `delegatecall` with our `to` address and the `data` argument inside our initializer data... Very interesting. There are no relevant checks anywhere for the `to` or `data` arguments for the safe's `setup` function. Therefore, we can pass in arbitrary `to` address and `data`.
+
+    2. **Specifying our malicious data**
+        - So inside our attack, we can pass in `address(this)` inside the `initializer` data as the `to` parameter for the `setup` function, which will reference the `proxy` because our `initializer` data is being run in the context of the `proxy` because of how `deployProxy` works.
+        - For the data parameter for the `setup` function, we pass in `delegateApprove` function that we made in our `RegistryAttack` contract, which takes in `address(this)` which is the proxy, and then the 10 DVT token amount. This function approves the `_spender` which is the `proxy` to spend 10 DVT. This is important because after the proxy is created, the `WalletRegistry` will give the proxy 10 DVT. 
+        - Note1: The salt nonce and other peripheral things aren't core to the hack, but are just a part of the setup and creation process. 
+        - Note2: The `setup` function takes in an `_owners` array of addresses, so we had to make sure that argument was an array of length one which just contained whoever we were currently pwning (Alice, Bob, Charlie, David). 
+
+    3. **Watching the magic happen**
+        - Finally, `createProxyWithCallback` finishes creating the proxy, and during this proxy creation, the DVT token contract has approved the `proxy` to be able to transfer 10 DVT tokens. 
+        - Now all that is left is the formalities and the things that happen after a proxy is created. Notice we pass in `IProxyCreateFactory(registry)` as the last argument which references the `WalletRegistry` contract, which does have the proper callback `proxyCreated`, so this is now what is executed because the proxy has finished being created. 
+        - Inside `WalletRegistry.proxyCreated`, it does a bunch of safety checks (one of the checks isn't robust enough and misses our malicious initializer data), then removes the expected wallet owner beneficiary (Alice, Bob, Charlie, David) from the beneficiaries mapping, and then registers their wallet associated with the proxy address (walletAddress), and finally then pays their `proxy` 10 DVT.
+        - Now that the proxy has 10 DVT, (AND can send that 10 DVT!), we can call `transferFrom` from the `proxy` to `msg.sender`, which gives the `attacker` 10 DVT because `msg.sender` is the `attacker` because we start the prank as the attacker. Each time a wallet like Alice/Bob/Charlie/David creates a proxy for their associated wallet, we get sent 10 DVT. And importantly, we were able to just pass in Alice/Bob/Charlie/David as the wallet users in our attack function.
+        - Note: During the whole `attack` function we iterate through each 4 users and do this entire process for each of them, so this all happens in a single transaction under the umbrella of the `attack` function
+
+    4. **Fixing the Vulnerability**
+        - The `proxyCreated` function inside `WalletRegistry` has a lackluster check for the initializer, and should be changed from `if bytes4(initializer[:4]) != Safe.setup.selector) revert` to something more explicit to make sure you can't pass malicious `to` and `data` parameters for the `setup` function during the proxy setup and creation. All their check is doing is making sure that our `initializer` is calling `setup`... But not checking the data inside `setup`!
+
+<img src="readme-pictures/success11.png" alt="winner">
+
+
+
+
+
 
 ## #12 Climber
 
@@ -305,3 +349,13 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 ## #14 Puppet V3
 
 ## #15 ABI Smuggling
+
+
+### Exhaustive Resources List
+- Tincho's challenges: https://www.damnvulnerabledefi.xyz/
+- Huge shoutout to: https://github.com/zach030/damnvulnerabledefi-foundry for some good solutions and test templates in foundry
+- Huge shoutout to: https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry for good foundry test templates
+- Bytes32 #1 Unstoppable: https://twitter.com/bytes032/status/1631235276033990657
+- Bytes32 #1 gist: https://gist.github.com/bytes032/68de03834881a41afa1d2d2f7b310d15
+- Huge shoutout to: https://www.youtube.com/@JohnnyTime for many awesome walkthroughs and solutions
+- Huge shoutout to Ethan Cemer #11 backdoor: https://www.youtube.com/watch?v=j48sEXLzt0E
