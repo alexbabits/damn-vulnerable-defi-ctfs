@@ -1,6 +1,6 @@
 ## Overview & Setup
 - **Detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY**. I will try to add the last few solutions over time.
-- Challenges: https://www.damnvulnerabledefi.xyz/ 
+- Challenges: https://www.damnvulnerabledefi.xyz/, https://github.com/tinchoabbate/damn-vulnerable-defi/
 
 ```bash
 git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
