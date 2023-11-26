@@ -1,6 +1,7 @@
 ## Overview & Setup
 - **Detailed** writeups and solutions to the **DAMN VULNERABLE** defi ctf's using **FOUNDRY**. I will try to add the last few solutions over time.
 - Challenges: https://www.damnvulnerabledefi.xyz/, https://github.com/tinchoabbate/damn-vulnerable-defi/
+- Jump to Challenge: [#1](1) [#2](2) [#3](3) [#4](4) [#5](5) [#6](6) [#7](7) [#8](8) [#9](9) [#10](10) [#11](11) [#12](12) [#13](13) [#14](14) [#15](15)
 
 ```bash
 git clone https://github.com/alexbabits/damn-vulnerable-defi-ctfs
@@ -25,7 +26,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
 - Challenges #5 and #6 not working because OpenZeppelin recently removed `ERC20Snapshot.sol` on Oct 5th, 2023. I may be able to fix it if I somehow get an earlier version of OZ.
 - Challenges #13, #14, #15 do not have a pre-made foundry test template, so if I solve these I will need to create and adapt the hardhat template from scatch.
 
-## #1 Unstoppable
+## #1 Unstoppable <a name="1"></a>
 - Description/Goal: Make the vault stop offering flash loans by making `flashLoan` always revert.
 - Resources: https://twitter.com/bytes032/status/1631235276033990657 & https://gist.github.com/bytes032/68de03834881a41afa1d2d2f7b310d15
 - Topics: Flashloans (ERC-3156) & Vaults (ERC-4626)
@@ -65,7 +66,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
 <img src="readme-pictures/success.png" alt="winner">
 
 
-## #2 Naive Receiver
+## #2 Naive Receiver <a name="2"></a>
 - Description/Goal: Drain Naive Receiver's contract balance of 10 ETH in a single transaction. He has a contract setup that can call `onFlashLoan` for the pool. The pool has 1 ether fee per flash loan.
 - Resources: https://www.youtube.com/watch?v=2tFlcH5k-jk, https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156)
@@ -79,7 +80,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
 <img src="readme-pictures/success2.png" alt="winner">
 
 
-## #3 Truster
+## #3 Truster <a name="3"></a>
 - Description/Goal: Take all the tokens out of the pool, in a single transaction if possible. A pool offering flash loans of DVT tokens for free. You have nothing.
 - Resources: https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156), tokens (ERC-20)
@@ -92,7 +93,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
 <img src="readme-pictures/success3.png" alt="winner">
 
 
-## #4 Side Entrance
+## #4 Side Entrance <a name="4"></a>
 - Description/Goal: Pool with 1000 ETH allows for deposits and withdraw of ETH with no fee flash loans. Starting with 1 ETH in balance, pass the challenge by taking all ETH from the pool.
 - Resources: https://github.com/zach030/damnvulnerabledefi-foundry
 - Topics: Flashloans (ERC-3156)
@@ -107,7 +108,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
 <img src="readme-pictures/success4.png" alt="winner">
 
 
-## #5 The Rewarder
+## #5 The Rewarder <a name="5"></a>
 - Preface: **CURRENTLY NOT WORKING** OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol for the AccountingToken. I tried using v4.9.3 of OZ which has ERC20snapshot.sol, and also grabbing its imports, but it's all messed up. This writeup will just be explaining and understanding the hack without the solution contracts properly running.
 - Description/Goal: A pool is offering flash loans of DVT tokens. And there's another pool offering rewards in tokens every 5 days for people who deposit their DVT tokens into it. Alice, Bob, Charlie, and David already deposited some DVT tokens and have won their rewards. You have no DVT, but int he upcoming reward round, you must claim most of the rewards for yourself.
 - Resources: https://www.youtube.com/watch?v=zT5uNbGPaJ4, https://github.com/zach030/damnvulnerabledefi-foundry
@@ -121,7 +122,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
     - This is a stepwise exploit. You wait right before rewards are finished, then do a flashloan, deposit, get rewards, and then payback the loan. If stepwise calculations are done this is a big issue. It is better to calculate the rewards continuously rather than doing stepwise jumps.
 
 
-## #6 Selfie
+## #6 Selfie <a name="6"></a>
 - Preface: **CURRENTLY NOT WORKING** OpenZeppelin currently broke this challenge with the release of v5.0.0 because there is no longer ERC20snapshot.sol.
 - Description/Goal: Pool offering flash loans of DVT tokens. It has a governance mechanism to control it. You start with no DVT tokens in balance. The pool has 1.5 million. Your goal is to take them all.
 - Resources: https://www.youtube.com/watch?v=_2RHyMMLR9A, https://github.com/zach030/damnvulnerabledefi-foundry
@@ -132,7 +133,7 @@ forge test --match-path test/CONTRACT_NAME_HERE.t.sol -vv
     - The flash loan finishes. We wait 2 days and then call `executeAction`. This makes the governance contract call `emergencyExit` with us as the reciever. Because the governance contract is the one calling `emergencyExit`, this passes the `onlyGovernance` modifier.
 
 
-## #7 Compromised
+## #7 Compromised <a name="7"></a>
 - Preface/Notes: `_setupRole` is depreicated in OZ, replace any instances with `_grantRole`.
 - Description/Goal: A related on-chain exchange is selling (absurdly overpriced) collectibles called “DVNFT”, now at 999 ETH each. This price is fetched from an on-chain oracle, based on 3 trusted reporters: 0xA732...A105, 0xe924...9D15 and 0x81A5...850c. Starting with 0.1 ETH, obtain all ETH available in the exchange.
 
@@ -168,7 +169,7 @@ MHgyMDgyNDJjNDBhY2RmYTllZDg4OWU2ODVjMjM1NDdhY2JlZDliZWZjNjAzNzFlOTg3NWZiY2Q3MzYz
 <img src="readme-pictures/success7.png" alt="winner">
 
 
-## #8 Puppet
+## #8 Puppet <a name="8"></a>
 - Preface: Currently working but had to add `stateMutability: view` to all the functions in `UniswapV1Exchange.json` and `UniswapV1Factory.json`.
 - Description/Goal: Lending pool where users can borrow DVT. First need to deposit 2x the borrow amount in ETH as collateral. The pool has 100k DVT in liquidity. There is a DEX (Uniswap V1) with 10 ETH and 10 DVT in liquidity. Take all the tokens from the pool. You start with 25 ETH and 1000 DVT.
 - Resources: https://www.youtube.com/watch?v=7pf3COTx708, https://github.com/zach030/damnvulnerabledefi-foundry, https://docs.uniswap.org/contracts/v1/reference/exchange, https://book.getfoundry.sh/cheatcodes/sign
@@ -205,7 +206,7 @@ Exchange: 1_010 DVT, 0.099 ETH
 <img src="readme-pictures/success8.png" alt="winner">
 
 
-## #9 Puppet V2
+## #9 Puppet V2 <a name="9"></a>
 - Preface: Currently working! But can be fragile. You have to build Uniswap V2 carefully. I had a `duplicate bytecode` error, so I removed the bytecode from the .json file and it worked. This was the repo I mostly used: https://github.com/ret2basic/damn-vulnerable-defi-foundry from https://www.ctfwriteup.com/web3-security-research/damn-vulnerable-defi/puppet-v2
 
 - Description/Goal: Uniswap v2 exchange is the price oracle for a lending pool. You start with 20 ETH and 10000 DVT tokens in balance. The pool has a 1,000,000 DVT tokens in balance. Drain the pool.
@@ -249,7 +250,7 @@ Lending Pool: 0 DVT, 29.7 WETH
 <img src="readme-pictures/success9.png" alt="winner">
 
 
-## #10 Free Rider
+## #10 Free Rider <a name="10"></a>
 - Description/Goal: 6 DVT NFT's have been minted and are for sale in a marketplace for 15 ETH each. Goal is to take all the NFT's, you get rewarded 45 ETH, but you start with out 0.5 ETH. The Uniswap v2 pool has 9_000 WETH and 15_000 DVT.
 - Topics: Flash swaps, NFT, Uniswap V2
 - Resources: https://github.com/ret2basic/damn-vulnerable-defi-foundry, https://docs.uniswap.org/contracts/v2/reference/smart-contracts/pair, https://docs.uniswap.org/contracts/v2/concepts/core-concepts/flash-swaps, https://docs.uniswap.org/contracts/v2/guides/smart-contract-integration/using-flash-swaps
@@ -309,7 +310,7 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 <img src="readme-pictures/success10.png" alt="winner">
 
 
-## #11 Backdoor
+## #11 Backdoor <a name="11"></a>
 - Preface: A mess to setup properly with imports and dependencies (safe-contracts repo changed their @!#&ing file names 3 weeks ago to remove the word GNOSIS, wtf?). 
 - Description/Goal: There is a registry of gnosis safe wallets. If someone deploys and registers a wallet, they get 10 DVT from the registry. It also uses gnosis safe proxy factory. 4 people, Alice, Bob, Charlie, David are currently registered into the system as beneficiaries. Therefore, the registry has 40 DVT tokens in the balance ready to be distributed. We have to take the funds from the wallet registry in a single transaction.
 - Topics: Gnosis safe wallets
@@ -341,7 +342,7 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 <img src="readme-pictures/success11.png" alt="winner">
 
 
-## #12 Climber
+## #12 Climber <a name="12"></a>
 
 - Preface/Notes: 
     - `_setupRole` is depreicated in OZ, replaced instances with `_grantRole`. 
@@ -368,11 +369,19 @@ Uniswap pool: 9_000.1 WETH, 15_000 DVT
 <img src="readme-pictures/success12.png" alt="winner">
 
 
-## #13 Wallet Mining
+## #13 Wallet Mining <a name="13"></a>
+- Potential references:
+- https://www.fatihdev.com/post/damn-vulnerable-defi-solutions-13-wallet-mining
+- https://github.com/fatcisk/damn-vulnerable-defi/
+- https://github.com/bzpassersby/Damn-Vulnerable-Defi-V3-Solutions/tree/main/contracts/wallet-mining
+- (Old foundry test): https://github.com/nicolasgarcia214/damn-vulnerable-defi-foundry/blob/master/test/Levels/safe-miners/SafeMiners.t.sol
+- https://systemweakness.com/damn-vulnerable-defi-v3-13-wallet-mining-solution-d5147533fa49
+- https://www.youtube.com/watch?v=7PS-wuIsZ4A
 
-## #14 Puppet V3
 
-## #15 ABI Smuggling
+## #14 Puppet V3 <a name="14"></a>
+
+## #15 ABI Smuggling <a name="15"></a>
 
 
 ### Resources I used to help me adapt all challenges to foundry
